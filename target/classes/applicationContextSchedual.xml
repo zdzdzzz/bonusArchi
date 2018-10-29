@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans" 
+	xmlns:mybatis="http://mybatis.org/schema/mybatis-spring"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:p="http://www.springframework.org/schema/p"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:mvc="http://www.springframework.org/schema/mvc"
+	xmlns:tx="http://www.springframework.org/schema/tx"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans 
+			            http://www.springframework.org/schema/beans/spring-beans-4.2.xsd
+			            http://www.springframework.org/schema/context
+			            http://www.springframework.org/schema/context/spring-context-4.2.xsd
+			            http://www.springframework.org/schema/mvc
+			            http://www.springframework.org/schema/mvc/spring-mvc-4.2.xsd
+			            http://www.springframework.org/schema/tx
+			            http://www.springframework.org/schema/tx/spring-tx-4.1.xsd
+			            http://mybatis.org/schema/mybatis-spring 
+			            http://mybatis.org/schema/mybatis-spring.xsd 
+			            http://www.springframework.org/schema/aop
+                     	http://www.springframework.org/schema/aop/spring-aop.xsd">
+			      
+	
+	<!-- 引入配置文件 -->
+	<!-- <bean id="propertyConfigurer"
+		class="org.springframework.beans.factory.config.PropertyPlaceholderConfigurer">
+		<property name="order" value="4" /> 
+    	<property name="ignoreUnresolvablePlaceholders" value="true" />
+		<property name="locations">
+			<list>
+				<value>classpath*:schedual.properties</value>
+			</list>
+		</property>
+	</bean> -->
+    
+    <bean id="redisListener" class="com.zd.archi.schedual.ReadRedisSchedual">
+    </bean>
+	
+	<!-- 定时任务的bean -->
+    <!-- <bean id="jobDetail" class="org.springframework.scheduling.quartz.JobDetailFactoryBean">
+        <property name="jobClass" value="com.zd.archi.schedual.ReadRedisSchedual"></property>
+        <property name="durability" value="true"></property>
+    </bean> -->
+    
+    <!-- 将需要执行的定时任务注入JOB中。 -->
+    <bean id="schedualJob" class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject" ref="redisListener"></property>
+        <!-- 任务类中需要执行的方法 -->
+        <property name="targetMethod" value="readRedis"></property>
+        <!-- 上一次未执行完成的，要等待有再执行。 -->
+        <property name="concurrent" value="false"></property>
+    </bean>
+
+    <!-- 1) 调度的配置&job的配置 -->
+   <!--  <bean id="testQuartzJob_ct" class="org.springframework.scheduling.quartz.CronTriggerFactoryBean">
+        <property name="jobDetail"><ref bean="testQuartzJob_jd" /></property>
+        <property name="cronExpression" value="*/5 * * * * ?" > </property>
+    </bean>
+    <bean id="testQuartzJob_jd"
+          class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">
+        <property name="targetObject"> <ref bean="testQuartzJob" /> </property>
+        <property name="targetMethod" value="run"> </property>
+    </bean> -->
+    <bean id="simpleTrigger" class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">
+        <property name="jobDetail" ref="schedualJob" />
+        <property name="startDelay" value="3000" />
+        <property name="repeatInterval" value="2000" />
+    </bean>
+    
+
+    <!-- 3) 开启定时任务-->
+    <!-- 总管理类 如果将lazy-init='false'那么容器启动就会执行调度程序 -->
+    <bean id="startQuertz" lazy-init="false" autowire="no"  class="org.springframework.scheduling.quartz.SchedulerFactoryBean">
+        <property name="triggers">
+            <list>
+                <ref bean="simpleTrigger"/>
+            </list>
+        </property>
+    </bean>
+
+</beans>
+
+	
